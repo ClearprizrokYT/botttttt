@@ -9,6 +9,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
+from aiohttp import web
 
 load_dotenv()
 
@@ -342,3 +343,26 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+async def handle(request):
+    return web.Response(text="Бот работает 24/7!")
+
+async def main():
+    app = web.Application()
+    app.router.add_get('/', handle)
+    
+    port = int(os.getenv("PORT", 8080))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    
+    await asyncio.gather(
+        site.start(),
+        dp.start_polling(bot)
+    )
+
+if __name__ == '__main__':
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        pass
