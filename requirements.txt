@@ -1,6 +1,2 @@
-syncio
 aiohttp
-os
-time
-json
-re
+aiogram
