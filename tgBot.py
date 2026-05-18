@@ -334,20 +334,15 @@ async def cancel_message(callback: CallbackQuery):
     await callback.message.answer("❌ Отменено", reply_markup=get_keyboard(is_subscribed))
 
 
+async def handle(request):
+    return web.Response(text="Бот работает 24/7!")
+
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     dp.include_router(router)
     asyncio.create_task(hourly_job())
     print(f"Бот запущен! Подписчиков: {len(subscribers)}")
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-async def handle(request):
-    return web.Response(text="Бот работает 24/7!")
-
-async def main():
+    
     app = web.Application()
     app.router.add_get('/', handle)
     
@@ -361,8 +356,8 @@ async def main():
         dp.start_polling(bot)
     )
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        pass
+        print("Бот остановлен")
