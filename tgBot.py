@@ -9,7 +9,6 @@ from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
-from aiohttp import web
 
 load_dotenv()
 
@@ -65,40 +64,12 @@ def get_cancel_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-async def get_server_time() -> str:
-    url = "https://time100.ru/Moscow"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
-    
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers, timeout=10) as resp:
-                if resp.status == 200:
-                    html = await resp.text()
-                    soup = BeautifulSoup(html, 'html.parser')
-                    
-                    time_element = soup.find(id="clockTime")
-                    if time_element:
-                        return time_element.get_text(strip=True)
-                    
-                    for class_name in ["time", "clock", "current-time"]:
-                        time_element = soup.find(class_=re.compile(class_name, re.I))
-                        if time_element:
-                            time_match = re.search(r'\d{1,2}:\d{2}(:\d{2})?', time_element.get_text())
-                            if time_match:
-                                return time_match.group()
-                    
-                    page_text = soup.get_text()
-                    time_match = re.search(r'\b(\d{1,2}:\d{2}:\d{2})\b', page_text)
-                    if time_match:
-                        return time_match.group(1)
-                        
-    except Exception as e:
-        print(f"Ошибка времени: {e}")
-    
-    return time.strftime("%H:%M:%S")
+from datetime import datetime, timezone, timedelta
 
+async def get_server_time() -> str:
+    moscow_tz = timezone(timedelta(hours=3))
+    now = datetime.now(moscow_tz)
+    return now.strftime("%H:%M:%S")
 
 async def get_btc_price() -> float:
     url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
@@ -334,30 +305,12 @@ async def cancel_message(callback: CallbackQuery):
     await callback.message.answer("❌ Отменено", reply_markup=get_keyboard(is_subscribed))
 
 
-async def handle(request):
-    return web.Response(text="Бот работает 24/7!")
-
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     dp.include_router(router)
     asyncio.create_task(hourly_job())
     print(f"Бот запущен! Подписчиков: {len(subscribers)}")
-    
-    app = web.Application()
-    app.router.add_get('/', handle)
-    
-    port = int(os.getenv("PORT", 8080))
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    
-    await asyncio.gather(
-        site.start(),
-        dp.start_polling(bot)
-    )
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        print("Бот остановлен")
+    asyncio.run(main())
